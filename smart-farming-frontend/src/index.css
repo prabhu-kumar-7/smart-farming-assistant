@@ -2,22 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+/* ── Topographic background pattern ── */
 body {
-  background-color: #0a1628;
-  color: #ffffff;
+  background-color: #2c3a2e;
+  color: #f0ede6;
   font-family: 'Inter', sans-serif;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0a1628; }
-::-webkit-scrollbar-thumb { background: #1a3a2a; border-radius: 3px; }
+/* Topo map pattern overlay */
+.topo-bg {
+  background-color: #2c3a2e;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cpath d='M0 200 Q100 150 200 200 Q300 250 400 200' stroke='%233a4a3c' stroke-width='1' fill='none' opacity='0.4'/%3E%3Cpath d='M0 180 Q100 130 200 180 Q300 230 400 180' stroke='%233a4a3c' stroke-width='1' fill='none' opacity='0.3'/%3E%3Cpath d='M0 220 Q100 170 200 220 Q300 270 400 220' stroke='%233a4a3c' stroke-width='1' fill='none' opacity='0.3'/%3E%3Cpath d='M0 160 Q100 110 200 160 Q300 210 400 160' stroke='%233a4a3c' stroke-width='1' fill='none' opacity='0.2'/%3E%3Cpath d='M0 240 Q100 190 200 240 Q300 290 400 240' stroke='%233a4a3c' stroke-width='1' fill='none' opacity='0.2'/%3E%3C/svg%3E");
+}
+
+/* ── Orange CTA button ── */
+.btn-primary {
+  background-color: #e85d26;
+  color: white;
+  border-radius: 9999px;
+  padding: 12px 32px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn-primary:hover {
+  background-color: #d04e1a;
+}
+
+/* Priority badges */
+.badge-urgent  { background: #e85d26; color: white; }
+.badge-medium  { background: #f5a623; color: white; }
+.badge-normal  { background: #3a4a3c; color: #9aab8c; }
+
+/* Card style */
+.farm-card {
+  background: #263028;
+  border: 1px solid #3a4a3c;
+  border-radius: 16px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #2c3a2e; }
+::-webkit-scrollbar-thumb { background: #3a4a3c; border-radius: 2px; }
 
 /* Chat scrollbar */
 .chat-scroll::-webkit-scrollbar { width: 4px; }

@@ -45,3 +45,14 @@ CREATE TABLE IF NOT EXISTS recommendations (
     message         TEXT            NOT NULL,   -- actual advice text
     generated_at    TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- Users table for login/register
+CREATE TABLE IF NOT EXISTS users (
+    id            SERIAL PRIMARY KEY,
+    full_name     VARCHAR(100)  NOT NULL,
+    email         VARCHAR(100)  UNIQUE NOT NULL,
+    password_hash VARCHAR(255)  NOT NULL,
+    role          VARCHAR(20)   DEFAULT 'farmer',
+    created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);

@@ -84,9 +84,9 @@ public class FarmRepository {
             ps.setString(2, farm.getFarmName());
             ps.setString(3, farm.getSoilType());
             ps.setString(4, farm.getCropType());
-            ps.setDouble(5, farm.getAreaAcres());
-            ps.setDouble(6, farm.getLatitude());
-            ps.setDouble(7, farm.getLongitude());
+            ps.setObject(5, farm.getAreaAcres());  // Allow null
+            ps.setObject(6, farm.getLatitude());   // Allow null
+            ps.setObject(7, farm.getLongitude());  // Allow null
             return ps;
         }, keyHolder);
 
@@ -109,5 +109,12 @@ public class FarmRepository {
     // ── Get all farmers ──────────────────────────────────────
     public List<Farmer> getAllFarmers() {
         return jdbcTemplate.query("SELECT * FROM farmers ORDER BY created_at DESC", farmerMapper);
+    }
+
+    // ── Check if farmer exists by phone or email ─────────────
+    public boolean farmerExists(String phone, String email) {
+        String sql = "SELECT COUNT(*) FROM farmers WHERE phone = ? OR email = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, phone, email);
+        return count != null && count > 0;
     }
 }

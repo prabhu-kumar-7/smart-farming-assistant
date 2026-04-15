@@ -116,11 +116,36 @@ function FarmForm() {
 
   const handleSubmit = async e => {
     e.preventDefault()
+
+    // Basic validation
+    if (!form.farmerName || !form.phone || !form.email || !form.state || !form.district || !form.localLocation || !form.farmName || !form.soilType || !form.areaAcres) {
+      setMessage({ type: 'error', text: 'Please fill all required fields' })
+      return
+    }
+
     setLoading(true)
 
     // Build combined location string for DB
     const locationString =
       `${form.localLocation}, ${form.district}, ${form.state}`
+
+    let latitude = form.latitude ? parseFloat(form.latitude) : null
+    let longitude = form.longitude ? parseFloat(form.longitude) : null
+
+    // If lat/lng not provided, geocode the location
+    if (!latitude || !longitude) {
+      try {
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationString)}`)
+        const geoData = await geoRes.json()
+        if (geoData.length > 0) {
+          latitude = parseFloat(geoData[0].lat)
+          longitude = parseFloat(geoData[0].lon)
+        }
+      } catch (error) {
+        console.error('Geocoding failed:', error)
+        // Continue without lat/lng
+      }
+    }
 
     try {
       const payload = {
@@ -131,9 +156,9 @@ function FarmForm() {
         farmName:   form.farmName,
         soilType:   form.soilType,
         cropType:   form.cropType,
-        areaAcres:  form.areaAcres,
-        latitude:   form.latitude,
-        longitude:  form.longitude,
+        areaAcres:  parseFloat(form.areaAcres),
+        latitude:   latitude,
+        longitude:  longitude,
       }
 
       const res = await API.post('/farm', payload)
@@ -149,33 +174,34 @@ function FarmForm() {
         farmName: '', soilType: '', cropType: '',
         areaAcres: '', latitude: '', longitude: '',
       })
-    } catch {
-      setMessage({ type: 'error', text: t.errorMsg })
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || t.errorMsg
+      setMessage({ type: 'error', text: errorMsg })
     } finally {
       setLoading(false)
     }
   }
 
   // ── Reusable styles ───────────────────────────────────────
-  const inputClass = `w-full bg-[#0a1628] border border-[#1a3a2a]
-    rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600
-    focus:outline-none focus:border-green-600 transition-colors`
+  const inputClass = `w-full bg-[#263028] border border-[#3a4a3c]
+    rounded-lg px-3 py-2.5 text-sm text-[#f0ede6] placeholder-[#9aab8c]
+    focus:outline-none focus:border-[#e85d26] transition-colors`
 
-  const labelClass = "text-xs text-gray-400 mb-1 block"
+  const labelClass = "text-xs text-[#9aab8c] mb-1 block"
 
-  const sectionTitle = `text-green-400 text-xs font-semibold uppercase
-    tracking-wider mb-4 pb-2 border-b border-[#1a3a2a]`
+  const sectionTitle = `text-[#8fbc5a] text-xs font-semibold uppercase
+    tracking-wider mb-4 pb-2 border-b border-[#3a4a3c]`
 
   return (
-    <div className="p-6 min-h-screen bg-[#0a1628]">
+    <div className="p-6 min-h-screen bg-[#2c3a2e]">
 
       {/* ── Page Header ── */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <FaLeaf className="text-green-500" />
+        <h1 className="text-2xl font-bold text-[#f0ede6] flex items-center gap-2">
+          <FaLeaf className="text-[#8fbc5a]" />
           {t.registerFarm}
         </h1>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-[#9aab8c] text-sm mt-1">
           {t.registerSubtitle}
         </p>
       </div>
@@ -192,7 +218,7 @@ function FarmForm() {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-[#0d1f17] border border-[#1a3a2a] rounded-xl p-6 space-y-5"
+        className="bg-[#1e2d20] border border-[#3a4a3c] rounded-xl p-6 space-y-5"
       >
 
         {/* ══ SECTION 1: Farmer Information ══ */}
@@ -310,8 +336,8 @@ function FarmForm() {
 
           {/* Location Preview — only shows when all 3 are filled */}
           {form.state && form.district && form.localLocation && (
-            <div className="mt-3 bg-[#0a1628] border border-green-800
-              rounded-lg px-3 py-2 text-xs text-green-400">
+            <div className="mt-3 bg-[#263028] border border-[#e85d26]
+              rounded-lg px-3 py-2 text-xs text-[#8fbc5a]">
               {t.fullLocation}: {form.localLocation},{' '}
               {t.districts?.[form.district] || form.district},{' '}
               {t.states?.[form.state] || form.state}
@@ -416,14 +442,14 @@ function FarmForm() {
               />
             </div>
           </div>
-          <p className="text-gray-600 text-xs mt-2">{t.gpsHint}</p>
+          <p className="text-gray-600 text-xs mt-2">{t.gpsHint} {t.gpsAutoFill}</p>
         </div>
 
         {/* ══ Submit Button ══ */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-green-700 hover:bg-green-600 text-white
+          className="w-full bg-[#e85d26] hover:bg-[#d04e1a] text-white
             font-semibold py-3 rounded-lg transition-colors
             disabled:opacity-50 text-sm"
         >

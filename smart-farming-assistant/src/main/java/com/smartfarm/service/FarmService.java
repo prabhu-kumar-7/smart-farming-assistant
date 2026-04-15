@@ -18,6 +18,11 @@ public class FarmService {
     // ── Register farmer + farm in one call ──────────────────
     public Map<String, Object> registerFarm(FarmRequest req) {
 
+        // Check if farmer already exists by phone or email
+        if (farmRepository.farmerExists(req.getPhone(), req.getEmail())) {
+            throw new RuntimeException("Farmer with this phone or email already exists");
+        }
+
         // Step 1: Build and save Farmer
         Farmer farmer = new Farmer();
         farmer.setName(req.getFarmerName());
