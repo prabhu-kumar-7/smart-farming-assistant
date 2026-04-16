@@ -47,23 +47,47 @@ public class RecommendationService {
     // ── RULE ENGINE 1: Crop Suggestion ───────────────────────
     private Recommendation cropRecommendation(Farm farm, WeatherData w) {
         String soil = farm.getSoilType().toLowerCase();
+        String currentCrop = farm.getCropType() != null ? farm.getCropType().toLowerCase() : "none";
+        Double area = farm.getAreaAcres() != null ? farm.getAreaAcres() : 0.0;
         double temp = w.getTemperature();
         double rain = w.getRainfall();
+        double humidity = w.getHumidity();
+        String farmName = farm.getFarmName();
         String msg;
 
-        // Rule matrix: soil type + temperature + rainfall
-        if (soil.equals("loamy") && temp >= 20 && temp <= 30) {
-            msg = "🌾 Ideal conditions for Rice or Wheat. Loamy soil retains moisture well.";
-        } else if (soil.equals("sandy") && temp >= 25 && temp <= 35) {
-            msg = "🥜 Sandy soil suits Groundnut or Millet. These crops tolerate dry heat.";
-        } else if (soil.equals("clay") && rain > 20) {
-            msg = "🌿 Clay soil with good rain — ideal for Sugarcane or Jute.";
-        } else if (temp > 35) {
-            msg = "🌵 High temperature detected. Consider drought-resistant crops like Sorghum.";
-        } else if (temp < 15) {
-            msg = "❄️ Cool conditions — suitable for Mustard, Barley, or Peas.";
-        } else {
-            msg = "🌱 General conditions — Maize or Vegetables recommended for mixed soil.";
+        // Enhanced rule matrix: soil + temp + rain + area + current crop + humidity
+        if (soil.equals("loamy")) {
+            if (temp >= 20 && temp <= 30 && humidity > 50) {
+                msg = String.format("🌾 %s (%.1f acres): Loamy soil + ideal temp. Rice is optimal. Top-dress at 3-leaf stage.", farmName, area);
+            } else if (temp > 30 && rain > 25) {
+                msg = String.format("🌿 %s: Loamy soil + warm + rainy. Shift to Wheat for next season or continue Rice with extra drainage.", farmName);
+            } else {
+                msg = String.format("🌱 %s: Loamy soil + current temp %.1f°C. Consider rotation: if was Rice, try Wheat or Vegetables (%.1f acres suitable).", farmName, temp, area);
+            }
+        } else if (soil.equals("sandy")) {
+            if (temp >= 25 && temp <= 35 && humidity < 40) {
+                msg = String.format("🥜 %s (%.1f acres): Sandy soil + hot + dry. Groundnut or Millet. Use drip irrigation.", farmName, area);
+            } else if (rain > 20) {
+                msg = String.format("🌾 %s: Sandy soil + unexpected rain. Pearl Millet thrives. Add mulch to retain moisture.", farmName);
+            } else {
+                msg = String.format("🌞 %s: Sandy soil needs drought crops. Sorghum or Pulses recommended (%.1f acres).", farmName, area);
+            }
+        } else if (soil.equals("clay")) {
+            if (rain > 20 && temp >= 20 && temp <= 30) {
+                msg = String.format("🌿 %s (%.1f acres): Clay soil + good rain + moderate temp. Ideal for Sugarcane or Cotton.", farmName, area);
+            } else if (humidity > 70 && rain > 15) {
+                msg = String.format("🌱 %s: Clay soil + very humid + rainy. Jute or Pulses (Arhar). Ensure drainage.", farmName);
+            } else {
+                msg = String.format("🪨 %s: Clay soil challenging now. Try Chickpea or Mustard for this season (%.1f acres).", farmName, area);
+            }
+        } else { // mixed/other
+            if (temp > 35 && humidity < 30) {
+                msg = String.format("🌵 %s (%.1f acres): Extreme heat + low humidity. Emergency: Sorghum or Drought-resistant Pulses.", farmName, area);
+            } else if (temp < 15) {
+                msg = String.format("❄️ %s: Cool conditions (%.1f°C). Mustard, Barley, or Peas suited for %.1f acres.", farmName, temp, area);
+            } else {
+                msg = String.format("🌱 %s (%.1f acres): Mixed conditions. Maize + Vegetables intercropping recommended.", farmName, area);
+            }
         }
 
         return buildRec(farm.getId(), "crop", msg);
@@ -74,26 +98,28 @@ public class RecommendationService {
         double rain = w.getRainfall();
         double humidity = w.getHumidity();
         double temp = w.getTemperature();
+        String farmName = farm.getFarmName();
+        Double area = farm.getAreaAcres() != null ? farm.getAreaAcres() : 0.0;
         String msg;
 
         // Rule: sufficient rain → skip irrigation
         if (rain > 30) {
-            msg = "💧 Sufficient rainfall detected. Skip irrigation for next 24–48 hours.";
+            msg = String.format("💧 %s: Sufficient rainfall (%.1fmm). Skip irrigation 24–48 hrs. Monitor soil surface.", farmName, rain);
         }
         // Rule: low humidity + high temp → urgent irrigation
         else if (humidity < 35 && temp > 32) {
-            msg = "🚨 Low humidity + High temperature! Irrigate immediately — drip method preferred.";
+            msg = String.format("🚨 %s (%.1f acres): CRITICAL! Humidity %.1f%%, Temp %.1f°C. Irrigate immediately using DRIP. Double frequency.", farmName, area, humidity, temp);
         }
         // Rule: moderate conditions → schedule irrigation
         else if (rain < 10 && humidity < 50) {
-            msg = "⏰ Low rainfall. Schedule irrigation every 2 days. Use sprinkler for efficiency.";
+            msg = String.format("⏰ %s: Low rainfall (%.1fmm) + moderate humidity. Irrigate EVERY 2 DAYS. Sprinkler efficient for %.1f acres.", farmName, rain, area);
         }
         // Rule: moderate rain
         else if (rain >= 10 && rain <= 30) {
-            msg = "✅ Moderate rainfall. Supplement with light irrigation every 3–4 days.";
+            msg = String.format("✅ %s: Moderate rainfall (%.1fmm) + Humidity %.1f%%. Light irrigation every 3–4 days. Drip preferred.", farmName, rain, humidity);
         }
         else {
-            msg = "💦 Monitor soil moisture. Irrigate when topsoil appears dry (2cm depth).";
+            msg = String.format("💦 %s (%.1f acres): Monitor soil moisture daily at 2cm depth near root zone. Irrigate when dry.", farmName, area);
         }
 
         return buildRec(farm.getId(), "irrigation", msg);
@@ -104,27 +130,42 @@ public class RecommendationService {
         String soil = farm.getSoilType().toLowerCase();
         String crop = farm.getCropType() != null
             ? farm.getCropType().toLowerCase() : "general";
+        Double area = farm.getAreaAcres() != null ? farm.getAreaAcres() : 0.0;
         double temp = w.getTemperature();
+        double humidity = w.getHumidity();
+        double rain = w.getRainfall();
+        String farmName = farm.getFarmName();
         String msg;
 
         // Rule: loamy + rice/wheat → NPK schedule
         if (soil.equals("loamy") && (crop.contains("rice") || crop.contains("wheat"))) {
-            msg = "🧪 Apply NPK (20:20:10) at sowing. Top-dress Urea after 3 weeks.";
+            double nRate = area * 40;  // kg/acre
+            msg = String.format("🧪 %s (%.1f acres): Loamy + %s. Apply NPK 20:20:10 (%d kg). Top-dress UREA after 3 weeks (%d kg).", 
+                farmName, area, crop.toUpperCase(), (int)nRate, (int)(nRate * 0.5));
         }
-        // Rule: sandy soil → needs more nitrogen
+        // Rule: sandy soil → needs more nitrogen + organic
         else if (soil.equals("sandy")) {
-            msg = "🌱 Sandy soil drains fast. Use slow-release Nitrogen fertilizer. Add organic compost.";
+            msg = String.format("🌱 %s (%.1f acres): Sandy soil drains fast. Use slow-release Nitrogen (%d kg/acre). Add organic compost 5 tons/acre.", 
+                farmName, area, (int)(area * 25));
         }
         // Rule: clay soil → phosphorus focus
         else if (soil.equals("clay")) {
-            msg = "🪨 Clay soil — apply Phosphorus-rich fertilizer. Avoid over-watering after application.";
+            msg = String.format("🪨 %s (%.1f acres): Clay soil. Apply Phosphorus-heavy NPK 15:25:15 (%d kg). Avoid over-watering post-application.", 
+                farmName, area, (int)(area * 35));
         }
         // Rule: high temp → avoid heavy chemical fertilizers
         else if (temp > 35) {
-            msg = "⚠️ High temperature! Avoid chemical fertilizers now — use organic compost to reduce stress.";
+            msg = String.format("⚠️ %s: Extreme heat (%.1f°C)! Skip chemical fertilizers now. Use organic compost (%d tons) to reduce crop stress.", 
+                farmName, temp, (int)(area * 5));
+        }
+        // Rule: variable - balanced NPK
+        else if (humidity > 70 && rain > 20) {
+            msg = String.format("💧 %s (%.1f acres): High humidity + rain. Apply balanced NPK 15:15:15 coated fertilizer (leaching risk). Micronutrient spray after 30 days.", 
+                farmName, area);
         }
         else {
-            msg = "🌿 Apply balanced NPK (15:15:15). Follow up with micronutrient spray after 30 days.";
+            msg = String.format("🌿 %s (%.1f acres): Moderate conditions. Apply balanced NPK 15:15:15 (%d kg). Micronutrient spray 30 days post-application.", 
+                farmName, area, (int)(area * 30));
         }
 
         return buildRec(farm.getId(), "fertilizer", msg);

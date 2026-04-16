@@ -14,12 +14,16 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    // POST /api/chat — Accept query + farm context, return AI reply
     @PostMapping("/chat")
     public ResponseEntity<Map<String, String>> chat(
             @RequestBody ChatRequest request) {
 
         // Validate input before hitting the LLM
+        if (request.getFarmId() == null || request.getFarmId() <= 0) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Valid Farm ID is required"));
+        }
+        
         if (request.getUserQuery() == null || request.getUserQuery().isBlank()) {
             return ResponseEntity.badRequest()
                 .body(Map.of("error", "Query cannot be empty"));

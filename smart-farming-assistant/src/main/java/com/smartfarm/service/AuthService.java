@@ -8,7 +8,6 @@ import com.smartfarm.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.Map;
 
 @Service
@@ -17,27 +16,42 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
-    private final BCryptPasswordEncoder encoder;
 
-    // ── Register new user ─────────────────────────────────────
+    // Use injected bean — NOT new BCryptPasswordEncoder()
+    private final BCryptPasswordEncoder passwordEncoder;
+
+    // ── Register ──────────────────────────────────────────────
     public Map<String, Object> register(RegisterRequest req) {
 
-        // Check if email already taken
-        if (userRepository.existsByEmail(req.getEmail())) {
-            throw new RuntimeException("Email already registered");
+        // Validate input
+        if (req.getFullName() == null || req.getFullName().isBlank()) {
+            throw new RuntimeException("Full name is required");
+        }
+        if (req.getEmail() == null || req.getEmail().isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
+        if (req.getPassword() == null || req.getPassword().length() < 6) {
+            throw new RuntimeException("Password must be at least 6 characters");
         }
 
-        // Build user with hashed password — never store plain text
+        // Check duplicate email
+        if (userRepository.existsByEmail(req.getEmail())) {
+            throw new RuntimeException("Email already registered. Please login.");
+        }
+
+        // Build user object
         User user = new User();
         user.setFullName(req.getFullName());
-        user.setEmail(req.getEmail());
-        user.setPasswordHash(encoder.encode(req.getPassword()));
+        user.setEmail(req.getEmail().toLowerCase().trim());
+        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         user.setRole("farmer");
 
         userRepository.save(user);
 
-        // Generate token immediately after register
-        String token = jwtUtil.generateToken(req.getEmail(), req.getFullName());
+        // Auto-login after register
+        String token = jwtUtil.generateToken(
+            user.getEmail(), user.getFullName()
+        );
 
         return Map.of(
             "token",    token,
@@ -47,20 +61,24 @@ public class AuthService {
         );
     }
 
-    // ── Login existing user ───────────────────────────────────
+    // ── Login ─────────────────────────────────────────────────
     public Map<String, Object> login(LoginRequest req) {
 
-        // Find user by email
-        User user = userRepository.findByEmail(req.getEmail())
-            .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+        // Find user — generic error message for security
+        User user = userRepository.findByEmail(
+            req.getEmail().toLowerCase().trim()
+        ).orElseThrow(() ->
+            new RuntimeException("Invalid email or password")
+        );
 
-        // Verify password against hash
-        if (!encoder.matches(req.getPassword(), user.getPasswordHash())) {
+        // Verify password
+        if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user.getEmail(), user.getFullName());
+        String token = jwtUtil.generateToken(
+            user.getEmail(), user.getFullName()
+        );
 
         return Map.of(
             "token",    token,

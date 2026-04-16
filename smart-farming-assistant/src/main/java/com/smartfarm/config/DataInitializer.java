@@ -15,7 +15,7 @@ public class DataInitializer implements ApplicationRunner {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    @Override
+    @Override 
     public void run(ApplicationArguments args) {
         String demoEmail = "ravi@gmail.com";
         if (!userRepository.existsByEmail(demoEmail)) {
